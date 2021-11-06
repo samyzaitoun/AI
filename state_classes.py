@@ -176,4 +176,6 @@ class Maze(State):
 
 @dataclass(frozen=True)
 class Pacman(State):
-    pass
+    
+    def __post_init__(self):
+        pass
