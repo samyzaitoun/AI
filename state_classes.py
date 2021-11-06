@@ -173,4 +173,7 @@ class Maze(State):
     @staticmethod
     def pretty_str(sol: List[Maze]) -> str:
         return [state.current_pos for state in sol]
-    
+
+@dataclass(frozen=True)
+class Pacman(State):
+    pass
