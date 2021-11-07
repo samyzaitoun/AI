@@ -42,22 +42,13 @@ class State(ABC):
 
 class Node:
     state: State
-    arcs: List[Node]
     evaluated_hash: Optional[int] = None
 
     def __init__(self, state: State):
         self.state = state
-        self.arcs = []
-    
-    def add_arcs(self) -> List[Node]:
-        if not self.arcs:
-            for next_state in self.state.next_states():
-                self.arcs.append(Node(next_state))
-                
-        return self.arcs
     
     def get_arcs(self) -> List[Node]:
-        return self.arcs or self.add_arcs()
+        return [Node(next_state) for next_state in self.state.next_states()]
     
     def __eq__(self, obj: Node) -> bool:
         return self.state == obj.state
@@ -95,7 +86,7 @@ class Graph:
         """
         Implementation of BFS on Graph
         Maintains a fifo-queue and spawns more nodes 
-        using add_arcs method.
+        using get_arcs method.
         """
         parent_dict = {}
         fifo_queue = [(self.start_node, 0)]
@@ -104,7 +95,7 @@ class Graph:
             if curr_node.state.is_end_state():
                 path = self.deconstruct_path_from_parent_dict(curr_node, parent_dict)
                 return path
-            curr_node_arcs = curr_node.add_arcs()
+            curr_node_arcs = curr_node.get_arcs()
             for node in curr_node_arcs:
                 if node in parent_dict:
                     continue
@@ -143,7 +134,7 @@ class Graph:
         """
         Implementation of DFS on Graph
         Maintains path using recursion and spawns pathway 
-        using add_arcs method.
+        using get_arcs method.
         """
         solved_state_nodes = {self.start_node}
         return self.recursive_solve_end_state_DFS([self.start_node], solved_state_nodes)
@@ -157,7 +148,7 @@ class Graph:
         curr_node = path[-1]
         if curr_node.state.is_end_state():
             return path
-        for node in curr_node.add_arcs():
+        for node in curr_node.get_arcs():
             if node in solved_state_nodes:
                 continue
             solved_state_nodes.add(node)
@@ -172,7 +163,7 @@ class Graph:
         """
         Implementation of DFSL on Graph
         Maintains path using recursion and spawns pathway 
-        using add_arcs method.
+        using get_arcs method.
         """
         solved_state_nodes= {self.start_node}
         return self.recursive_solve_end_state_DFSL(depth, [self.start_node], solved_state_nodes)
@@ -188,7 +179,7 @@ class Graph:
         curr_node = path[-1]
         if curr_node.state.is_end_state():
             return path
-        for node in curr_node.add_arcs():
+        for node in curr_node.get_arcs():
             if node in solved_state_nodes:
                 continue
             solved_state_nodes.add(node)
@@ -203,7 +194,7 @@ class Graph:
         """
         Implementation of Incremental DFSL on Graph
         Maintains path using recursion and spawns pathway 
-        using add_arcs method. 
+        using get_arcs method. 
         """
         i = 0
         while True:
@@ -227,7 +218,7 @@ class Graph:
         if curr_node.state.is_end_state():
             return path
         sorted_nodes = sorted(
-                curr_node.add_arcs(), 
+                curr_node.get_arcs(), 
                 key=lambda node: node.state.attractive_rate(),
                 reverse=True
         )
