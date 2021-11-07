@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from abc import ABC
 from enum import Enum, auto
-from typing import Callable, Set, List, Optional, TypeVar
+from typing import Dict, Callable, Set, List, Optional, TypeVar
 
 # Defining this to allow coherent type hints
 State = TypeVar("State")
@@ -77,11 +77,9 @@ class Strategy(Enum):
 
 class Graph:
     start_node: Node
-    solved_state_nodes: Set[Node]
     
     def __init__(self, start_state: State):
         self.start_node = Node(start_state)
-        self.solved_state_nodes = {self.start_node}
     
     def solve_end_state(self, strategy: Strategy, **kwargs) -> List[Node]:
         strategy_map = {
@@ -91,7 +89,6 @@ class Graph:
             Strategy.IDFSL: self.solve_end_state_IDFSL,
             Strategy.PDFS: self.solve_end_state_PDFS,
         }
-        self.solved_state_nodes = {self.start_node}
         return strategy_map[strategy](**kwargs)
     
     def solve_end_state_BFS(self) -> List[Node]:
@@ -100,20 +97,34 @@ class Graph:
         Maintains a fifo-queue and spawns more nodes 
         using add_arcs method.
         """
+        parent_dict = {}
         fifo_queue = [(self.start_node, 0)]
         while fifo_queue:
             curr_node, depth = fifo_queue.pop(0)
             if curr_node.state.is_end_state():
-                path = self.solve_end_state(Strategy.DFSL, depth=depth)
+                path = self.deconstruct_path_from_parent_dict(curr_node, parent_dict)
                 return path
             curr_node_arcs = curr_node.add_arcs()
             for node in curr_node_arcs:
-                if node in self.solved_state_nodes:
+                if node in parent_dict:
                     continue
-                self.solved_state_nodes.add(node)
+                parent_dict[node] = curr_node
                 fifo_queue.append((node, depth + 1))
         
         raise ValueError("No end-state found from base-state.")
+    
+    def deconstruct_path_from_parent_dict(
+            self, 
+            end_node: Node, 
+            parent_dict: Dict[Node, Node]
+    ) -> List[State]:
+        path = [end_node]
+        curr_node = end_node
+        while curr_node != self.start_node:
+            curr_node = parent_dict[curr_node]
+            path.append(curr_node)
+        return [node.state for node in reversed(path)]
+        
     
     def DFS_decorator(
             dfs_method: Callable[[Graph], Optional[List[Node]]]
@@ -134,10 +145,11 @@ class Graph:
         Maintains path using recursion and spawns pathway 
         using add_arcs method.
         """
-        return self.recursive_solve_end_state_DFS([self.start_node])
+        solved_state_nodes = {self.start_node}
+        return self.recursive_solve_end_state_DFS([self.start_node], solved_state_nodes)
     
     def recursive_solve_end_state_DFS(
-        self, path: List[Node]
+        self, path: List[Node], solved_state_nodes: Set[Node]
     ) -> Optional[List[Node]]:
         """
         Recursive method which implements solve_end_state_DFS
@@ -146,13 +158,12 @@ class Graph:
         if curr_node.state.is_end_state():
             return path
         for node in curr_node.add_arcs():
-            if node in self.solved_state_nodes:
+            if node in solved_state_nodes:
                 continue
-            self.solved_state_nodes.add(node)
+            solved_state_nodes.add(node)
             path.append(node)
-            if self.recursive_solve_end_state_DFS(path):
+            if self.recursive_solve_end_state_DFS(path, solved_state_nodes):
                 return path
-            self.solved_state_nodes.remove(node)
             path.pop(-1)
         return None
     
@@ -163,10 +174,11 @@ class Graph:
         Maintains path using recursion and spawns pathway 
         using add_arcs method.
         """
-        return self.recursive_solve_end_state_DFSL(depth, [self.start_node])
+        solved_state_nodes= {self.start_node}
+        return self.recursive_solve_end_state_DFSL(depth, [self.start_node], solved_state_nodes)
     
     def recursive_solve_end_state_DFSL(
-            self, depth: int, path: List[Node]
+            self, depth: int, path: List[Node], solved_state_nodes: Set[Node]
     ) -> Optional[List[Node]]:
         """
         Recursive method which implements solve_end_state_DFSL
@@ -177,13 +189,13 @@ class Graph:
         if curr_node.state.is_end_state():
             return path
         for node in curr_node.add_arcs():
-            if node in self.solved_state_nodes:
+            if node in solved_state_nodes:
                 continue
-            self.solved_state_nodes.add(node)
+            solved_state_nodes.add(node)
             path.append(node)
-            if self.recursive_solve_end_state_DFSL(depth-1, path):
+            if self.recursive_solve_end_state_DFSL(depth-1, path, solved_state_nodes):
                 return path
-            self.solved_state_nodes.remove(node)
+            solved_state_nodes.remove(node)
             path.pop(-1)
         return None
     
@@ -198,17 +210,18 @@ class Graph:
             try:
                 sol = self.solve_end_state(Strategy.DFSL, depth=i)
             except ValueError:
-                pass
+                sol = None
             if sol:
                 return sol
             i += 1
         
     @DFS_decorator
     def solve_end_state_PDFS(self):
-        return self.recursive_solve_end_state_PDFS([self.start_node])
+        solved_state_nodes= {self.start_node}
+        return self.recursive_solve_end_state_PDFS([self.start_node], solved_state_nodes)
     
     def recursive_solve_end_state_PDFS(
-            self, path: List[Node]
+            self, path: List[Node], solved_state_nodes: Set[Node]
     ) -> Optional[List[Node]]:
         curr_node = path[-1]
         if curr_node.state.is_end_state():
@@ -219,12 +232,11 @@ class Graph:
                 reverse=True
         )
         for node in sorted_nodes:
-            if node in self.solved_state_nodes:
+            if node in solved_state_nodes:
                 continue
-            self.solved_state_nodes.add(node)
+            solved_state_nodes.add(node)
             path.append(node)
-            if self.recursive_solve_end_state_PDFS(path):
+            if self.recursive_solve_end_state_PDFS(path, solved_state_nodes):
                 return path
-            self.solved_state_nodes.remove(node)
             path.pop(-1)
         return None
