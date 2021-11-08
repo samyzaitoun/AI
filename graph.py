@@ -125,7 +125,7 @@ class Graph:
         return [node.state for node in reversed(path)]
         
     
-    def DFS_decorator(
+    def dfs_wrapper(
             dfs_method: Callable[[Graph], Optional[List[Node]]]
     ) -> Callable[[Graph], List[State]]:
         def wrapper(*args, **kwargs):
@@ -137,7 +137,7 @@ class Graph:
             ]
         return wrapper
     
-    @DFS_decorator
+    @dfs_wrapper
     def solve_end_state_DFS(self):
         """
         Implementation of DFS on Graph
@@ -167,7 +167,7 @@ class Graph:
             path.pop(-1)
         return None
     
-    @DFS_decorator
+    @dfs_wrapper
     def solve_end_state_RDFS(self):
         """
         Implementation of DFS on Graph
@@ -200,7 +200,7 @@ class Graph:
             path.pop(-1)
         return None
     
-    @DFS_decorator
+    @dfs_wrapper
     def solve_end_state_DFSL(self, depth: int):
         """
         Implementation of DFSL on Graph
@@ -233,7 +233,7 @@ class Graph:
             path.pop(-1)
         return None
     
-    @DFS_decorator
+    @dfs_wrapper
     def solve_end_state_RDFSL(self, depth: int):
         """
         Implementation of DFSL on Graph
@@ -303,7 +303,7 @@ class Graph:
                 return sol
             i += 1
         
-    @DFS_decorator
+    @dfs_wrapper
     def solve_end_state_PDFS(self):
         solved_state_nodes= {self.start_node}
         return self.recursive_solve_end_state_PDFS([self.start_node], solved_state_nodes)
