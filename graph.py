@@ -2,6 +2,7 @@
 from abc import ABC
 from enum import Enum, auto
 from typing import Dict, Callable, Set, List, Optional, TypeVar
+from random import shuffle
 
 # Defining this to allow coherent type hints
 State = TypeVar("State")
@@ -33,8 +34,9 @@ class State(ABC):
     
     def attractive_rate(self) -> float:
         """
-        Returns a float between 0 to 1 which represents how close this current
-        state is to the end state.
+        Returns a float which gives a rating to the current state.
+        Can be used to compare between two states and decide which one is more
+        favorable (The one with a better (higher) attractiveness).
         """
         raise NotImplementedError(
             "The attractive_rate method must be implemented in the inheriting subclass."
@@ -62,8 +64,11 @@ class Node:
 class Strategy(Enum):
     BFS = auto() # Breadth First search
     DFS = auto() # Depth First Search
+    RDFS = auto() # Random Depth First Search
     DFSL = auto() # DFS - Depth L
+    RDFSL = auto() # RDFS - Depth L
     IDFSL = auto() # Incremental Depth L DFS
+    RIDFSL = auto() # Random IDFSL 
     PDFS = auto() # Priority DFS
 
 class Graph:
@@ -76,8 +81,11 @@ class Graph:
         strategy_map = {
             Strategy.BFS: self.solve_end_state_BFS,
             Strategy.DFS: self.solve_end_state_DFS,
+            Strategy.RDFS: self.solve_end_state_RDFS,
             Strategy.DFSL: self.solve_end_state_DFSL,
+            Strategy.RDFSL: self.solve_end_state_RDFSL,
             Strategy.IDFSL: self.solve_end_state_IDFSL,
+            Strategy.RIDFSL: self.solve_end_state_RIDFSL,
             Strategy.PDFS: self.solve_end_state_PDFS,
         }
         return strategy_map[strategy](**kwargs)
@@ -148,7 +156,41 @@ class Graph:
         curr_node = path[-1]
         if curr_node.state.is_end_state():
             return path
-        for node in curr_node.get_arcs():
+        node_arcs = curr_node.get_arcs()
+        for node in node_arcs:
+            if node in solved_state_nodes:
+                continue
+            solved_state_nodes.add(node)
+            path.append(node)
+            if self.recursive_solve_end_state_DFS(path, solved_state_nodes):
+                return path
+            path.pop(-1)
+        return None
+    
+    @DFS_decorator
+    def solve_end_state_RDFS(self):
+        """
+        Implementation of DFS on Graph
+        Maintains path using recursion and spawns pathway 
+        using get_arcs method.
+        Uses randomization to create a more equal chance for each node
+        instead of relying on deterministic order by hash.
+        """
+        solved_state_nodes = {self.start_node}
+        return self.recursive_solve_end_state_DFS([self.start_node], solved_state_nodes)
+    
+    def recursive_solve_end_state_RDFS(
+        self, path: List[Node], solved_state_nodes: Set[Node]
+    ) -> Optional[List[Node]]:
+        """
+        Recursive method which implements solve_end_state_DFS
+        """
+        curr_node = path[-1]
+        if curr_node.state.is_end_state():
+            return path
+        node_arcs = curr_node.get_arcs()
+        shuffle(node_arcs)
+        for node in node_arcs:
             if node in solved_state_nodes:
                 continue
             solved_state_nodes.add(node)
@@ -179,7 +221,44 @@ class Graph:
         curr_node = path[-1]
         if curr_node.state.is_end_state():
             return path
-        for node in curr_node.get_arcs():
+        node_arcs = curr_node.get_arcs()
+        for node in node_arcs:
+            if node in solved_state_nodes:
+                continue
+            solved_state_nodes.add(node)
+            path.append(node)
+            if self.recursive_solve_end_state_DFSL(depth-1, path, solved_state_nodes):
+                return path
+            solved_state_nodes.remove(node)
+            path.pop(-1)
+        return None
+    
+    @DFS_decorator
+    def solve_end_state_RDFSL(self, depth: int):
+        """
+        Implementation of DFSL on Graph
+        Maintains path using recursion and spawns pathway 
+        using get_arcs method.
+        Uses randomization to create a more equal chance for each node
+        instead of relying on deterministic order by hash.
+        """
+        solved_state_nodes= {self.start_node}
+        return self.recursive_solve_end_state_DFSL(depth, [self.start_node], solved_state_nodes)
+    
+    def recursive_solve_end_state_RDFSL(
+            self, depth: int, path: List[Node], solved_state_nodes: Set[Node]
+    ) -> Optional[List[Node]]:
+        """
+        Recursive method which implements solve_end_state_DFSL
+        """
+        if depth < 0:
+            return None
+        curr_node = path[-1]
+        if curr_node.state.is_end_state():
+            return path
+        node_arcs = curr_node.get_arcs()
+        shuffle(node_arcs)
+        for node in node_arcs:
             if node in solved_state_nodes:
                 continue
             solved_state_nodes.add(node)
@@ -200,6 +279,24 @@ class Graph:
         while True:
             try:
                 sol = self.solve_end_state(Strategy.DFSL, depth=i)
+            except ValueError:
+                sol = None
+            if sol:
+                return sol
+            i += 1
+    
+    def solve_end_state_RIDFSL(self) -> Optional[List[State]]:
+        """
+        Implementation of Incremental DFSL on Graph
+        Maintains path using recursion and spawns pathway 
+        using get_arcs method.
+        Uses randomization to create a more equal chance for each node
+        instead of relying on deterministic order by hash.
+        """
+        i = 0
+        while True:
+            try:
+                sol = self.solve_end_state(Strategy.RDFSL, depth=i)
             except ValueError:
                 sol = None
             if sol:

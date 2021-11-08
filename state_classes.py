@@ -6,6 +6,7 @@ from graph import State
 
 # Defining this to allow coherent type hints
 Maze = TypeVar("Maze")
+Pacman = TypeVar("Pacman")
 
 @dataclass(frozen=True)
 class LightBulb(State):
@@ -282,7 +283,26 @@ class Pacman(State):
         The end state in pacman is that all points have been consumed
         """
         return not self.points
-                
+    
+    def attractive_rate(self) -> float:
+        """
+        Should be based on - How many points have been consumed + distance
+        from nearest point
+        We don't know the initial amount of points - we'll deduct points
+        instead.
+        """
+        if not self.points:
+            return 0
+        pacman_position = self.pacman_position
+        return sorted(
+            [ 
+                1 / ( 1 + abs(pacman_position[0] - point[0])
+                + abs(pacman_position[1] - point[1]))
+                for point in self.points
+            ],
+            reverse=True
+        )[0] - len(self.points)
+    
     def get_possible_pacman_positions(
             self, enemy_positions: FrozenSet[Tuple[int, int]]
     ) -> List[Tuple[int, int]]:
@@ -388,8 +408,18 @@ class Pacman(State):
                 possible_positions.append(next_enemy_move)
         
         return possible_positions
-        
-        
+    
+    @staticmethod
+    def pretty_str(
+        sol_path: List[Pacman]
+    ) -> List[str]:
+        return [
+            f"pacman_pos={state.pacman_position} | "
+            f"enemy_position={sorted(state.pacman_enemy_positions)} | "
+            f"points_position= {sorted(state.points)}"
+            for state in sol_path
+        ]
+    
         
         
     
