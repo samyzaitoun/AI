@@ -177,7 +177,7 @@ class Graph:
         instead of relying on deterministic order by hash.
         """
         solved_state_nodes = {self.start_node}
-        return self.recursive_solve_end_state_DFS([self.start_node], solved_state_nodes)
+        return self.recursive_solve_end_state_RDFS([self.start_node], solved_state_nodes)
     
     def recursive_solve_end_state_RDFS(
         self, path: List[Node], solved_state_nodes: Set[Node]
@@ -195,7 +195,7 @@ class Graph:
                 continue
             solved_state_nodes.add(node)
             path.append(node)
-            if self.recursive_solve_end_state_DFS(path, solved_state_nodes):
+            if self.recursive_solve_end_state_RDFS(path, solved_state_nodes):
                 return path
             path.pop(-1)
         return None
@@ -243,7 +243,7 @@ class Graph:
         instead of relying on deterministic order by hash.
         """
         solved_state_nodes= {self.start_node}
-        return self.recursive_solve_end_state_DFSL(depth, [self.start_node], solved_state_nodes)
+        return self.recursive_solve_end_state_RDFSL(depth, [self.start_node], solved_state_nodes)
     
     def recursive_solve_end_state_RDFSL(
             self, depth: int, path: List[Node], solved_state_nodes: Set[Node]
@@ -263,7 +263,7 @@ class Graph:
                 continue
             solved_state_nodes.add(node)
             path.append(node)
-            if self.recursive_solve_end_state_DFSL(depth-1, path, solved_state_nodes):
+            if self.recursive_solve_end_state_RDFSL(depth-1, path, solved_state_nodes):
                 return path
             solved_state_nodes.remove(node)
             path.pop(-1)

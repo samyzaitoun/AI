@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-from enum import Enum, auto
 from dataclasses import dataclass
-from typing import  Set, Dict, Tuple, List, Iterable, TypeVar, FrozenSet
-from graph import State
+from typing import  Set, Tuple, List, TypeVar, FrozenSet
+from graph import Graph, Strategy, State
 
 # Defining this to allow coherent type hints
 Maze = TypeVar("Maze")
@@ -119,6 +118,7 @@ class Pacman(State):
     points: FrozenSet[Tuple[int, int]]
     blocks: FrozenSet[Tuple[int, int]]
     skip_post_init: bool = False
+    smart_enemies: bool = False
     
     def __post_init__(self) -> None:
         """
@@ -322,8 +322,22 @@ class Pacman(State):
     def generate_single_enemy_positions(
             self,
             current_position: Tuple[int, int],
-            allocated_enemy_positions: Set[Tuple[int, int]]
+            allocated_enemy_positions: Set[Tuple[int, int]],
     ) -> List[Tuple[int, int]]:
+        if self.smart_enemies:
+            try:
+                next_step = Graph(
+                    Maze(
+                        row_size=self.row_size,
+                        col_size=self.col_size,
+                        current_pos=current_position,
+                        exit_pos=self.pacman_position,
+                        blocks=self.blocks | self.pacman_enemy_positions | allocated_enemy_positions
+                    )
+                ).solve_end_state(Strategy.BFS)[1].current_pos
+                return [next_step]
+            except ValueError:
+                return []
         enemy_row, enemy_col = current_position
         possible_positions = []
         for i in range(-1, 2, 1):
